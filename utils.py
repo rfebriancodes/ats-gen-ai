@@ -1,12 +1,25 @@
 import pdfplumber
 import re
+import re
+import pdfplumber
+
 def extract_text_from_pdf(file):
     text = ""
     with pdfplumber.open(file) as pdf:
         for page in pdf.pages:
-            if page.extract_text():
-                text += page.extract_text() + " "
-    return text.strip()
+            # Naikkan toleransi x menjadi lebih besar (misal 2.0 atau 3.0)
+            extracted = page.extract_text(x_tolerance=2.0) 
+            if extracted:
+                text += extracted + " "
+    
+    # Bersihkan enter
+    text = text.replace("\n", " ").strip()
+    
+    # Trik Sakti: Pisahkan huruf kecil yang nempel dengan huruf besar
+    # Mengubah "BackendDeveloperIntern" menjadi "Backend Developer Intern"
+    text = re.sub(r"([a-z])([A-Z])", r"\1 \2", text)
+    
+    return text
 
 
 

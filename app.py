@@ -2,12 +2,12 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-
+from generator import generate_evaluation
 from sklearn.metrics.pairwise import cosine_similarity
 
 from model import get_model
 from utils import extract_text_from_pdf, extract_contact_info
-from skill_extractor import extract_skills_from_jd
+from skill_extractor import extract_skills_with_gemini
 from evaluator import (
     parse_required_skills,
     evaluate_skills,
@@ -41,7 +41,7 @@ job_desc = st.sidebar.text_area("Paste Job Description")
 # Auto Extract Skills
 if st.sidebar.button("Auto Extract Skills from JD"):
     if job_desc:
-        extracted = extract_skills_from_jd(job_desc)
+        extracted = extract_skills_with_gemini(job_desc)
         st.sidebar.write("Detected Skills:")
         st.sidebar.write(extracted)
 
@@ -156,6 +156,18 @@ if st.sidebar.button("🚀 Evaluate Candidates"):
             )
 
         st.markdown("---")
+
+        with st.spinner("Generating evaluation..."):
+
+            explanation = generate_evaluation(
+                job_desc,
+                candidate["cv_text"][:4000],  # limit tokens
+                candidate["skill_percentage"],
+                candidate["semantic"],
+                1  # or your exp_score if available
+            )
+
+        st.write(explanation)
 
     # Ranking overview chart
     df_final = pd.DataFrame(results)

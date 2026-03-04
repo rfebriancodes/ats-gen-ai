@@ -1,44 +1,64 @@
+import google.generativeai as genai
+import os
+import json
+from dotenv import load_dotenv
 import re
-from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+import streamlit as st
 
+# Load API Key (Pastikan ini ada di bagian atas app.py)
+load_dotenv()
+api_key = 'AIzaSyC-VS4pqSohcH5JYhBhRfnY7l-RTsB64Bg'
+if not api_key:
+    st.error("⚠️ API Key Gemini tidak ditemukan!")
+    st.stop()
 
-def extract_skills_from_jd(job_desc):
+# Konfigurasi Gemini (Pakai model 1.5 Flash karena super cepat)
+genai.configure(api_key=api_key)
+model = genai.GenerativeModel('gemini-2.5-flash')
 
-    text = job_desc.lower()
+def extract_skills_with_gemini(job_desc_text):
+    """
+    Menggunakan Gemini API untuk mengekstrak Hard Skills & Soft Skills 
+    secara cerdas dari teks Job Description apa pun (Multi-Konteks).
+    """
+    
+    # Prompt cerdas untuk Gemini agar hasil ekstraksi bersih dan relevan
+    prompt = f"""
+    Kamu adalah ahli HR Senior dan analisis teks tingkat lanjut.
+    Tugasmu adalah membaca teks Job Description berikut dan mengekstrak semua SKILLS (Keahlian) yang relevan, baik Hard Skills maupun Soft Skills.
 
-    # 1️⃣ Extract tech-like tokens (Go, AWS, Docker, etc.)
-    tech_pattern = r'\b[a-zA-Z0-9+#.]+\b'
-    tokens = re.findall(tech_pattern, text)
+    Job Description:
+    "{job_desc_text}"
 
-    # 2️⃣ Remove stopwords + short words
-    filtered = [
-        word for word in tokens
-        if word not in ENGLISH_STOP_WORDS
-        and len(word) > 2
-    ]
-
-    # 3️⃣ Detect common tech phrases (n-grams)
-    bigrams = re.findall(r'\b[a-zA-Z]+\s+[a-zA-Z]+\b', text)
-
-    # Keep meaningful bigrams like "google cloud", "problem solving"
-    meaningful_bigrams = [
-        phrase for phrase in bigrams
-        if all(w not in ENGLISH_STOP_WORDS for w in phrase.split())
-    ]
-
-    # 4️⃣ Combine & deduplicate
-    all_skills = set(filtered + meaningful_bigrams)
-
-    # 5️⃣ Remove very generic words
-    blacklist = {
-        "years", "degree", "experience", "field",
-        "professional", "strong", "ability",
-        "understanding", "developing", "services"
-    }
-
-    cleaned = [
-        skill for skill in all_skills
-        if skill not in blacklist
-    ]
-
-    return ", ".join(sorted(list(cleaned)))
+    Instruksi Penting:
+    1. Ekstrak HANYA kata atau frasa yang merupakan keahlian (contoh: Python, AWS, Manajemen Proyek, Komunikasi, Figma, REST API).
+    2. JANGAN ekstrak kata sifat umum (seperti 'excellent', 'strong', 'rapid'), persyaratan umum (seperti 'bachelor degree', 'experience'), atau kata sampah.
+    3. Ekstrak skill dalam format huruf kecil.
+    4. Kembalikan output HANYA dalam format JSON berupa satu array (list) dari string. Contoh output: ["python", "aws", "manajemen proyek"]
+    """
+    
+    try:
+        # Kirim prompt ke Gemini
+        response = model.generate_content(prompt)
+        
+        # Bersihkan text markdown json ```json ... ``` jika ada
+        clean_text = response.text.replace("```json", "").replace("```", "").strip()
+        
+        # Parse JSON menjadi list Python
+        skills_list = json.loads(clean_text)
+        
+        # Kembalikan sebagai string yang dipisahkan koma agar cocok dengan visualisasi Streamlit-mu
+        return ", ".join(sorted(skills_list))
+        
+    except json.JSONDecodeError:
+        # Jika AI 'halu' dan format JSON-nya berantakan, kita pakai regex sederhana sebagai backup
+        st.warning("⚠️ Format JSON dari AI bermasalah, menggunakan ekstraksi cadangan.")
+        # Ambil kata-kata di dalam tanda kutip atau yang dipisahkan koma dari teks AI
+        alternative_extract = re.findall(r'"([^"]*)"|(\w+(?:\s+\w+)*)', response.text)
+        # Flatten list dan bersihkan
+        flattened = [item for sublist in alternative_extract for item in sublist if item]
+        return ", ".join(sorted(set(flattened)))
+        
+    except Exception as e:
+        st.error(f"❌ Terjadi kesalahan saat menghubungi Gemini API: {e}")
+        return ""

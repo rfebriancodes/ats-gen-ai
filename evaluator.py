@@ -38,14 +38,26 @@ def evaluate_skills(cv_text, required_skills):
     return results, percentage
 
 
-def highlight_skills(cv_text, required_skills):
 
+def highlight_skills(cv_text, required_skills):
     highlighted = cv_text
 
-    for skill in required_skills:
-        pattern = re.compile(skill, re.IGNORECASE)
+    # 1. Urutkan skill dari yang terpanjang ke terpendek.
+    # Ini penting agar "C++" di-highlight duluan sebelum "C", 
+    # atau "React Native" duluan sebelum "React".
+    sorted_skills = sorted(required_skills, key=len, reverse=True)
+
+    for skill in sorted_skills:
+        # 2. re.escape(skill): Mengubah '+' atau '#' jadi teks biasa, bukan rumus regex.
+        # 3. (?<!\w) dan (?!\w): Ini adalah "Smart Word Boundary". 
+        # Memastikan dia tidak me-replace kata di TENGAH kata lain (misal mencari "go" di dalam "algoritma").
+        pola_regex = r'(?<!\w)' + re.escape(skill) + r'(?!\w)'
+        pattern = re.compile(pola_regex, re.IGNORECASE)
+        
+        # 4. match.group(0): Mempertahankan huruf besar/kecil ASLI dari CV pelamar.
+        # (Kalau CV nulis "JavaScript", hasilnya tetap "JavaScript", bukan "javascript").
         highlighted = pattern.sub(
-            f"<mark>{skill}</mark>",
+            lambda match: f"<mark>{match.group(0)}</mark>", 
             highlighted
         )
 
