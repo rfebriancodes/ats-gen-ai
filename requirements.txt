@@ -6,4 +6,5 @@ numpy
 matplotlib
 PyPDF2
 plotly
-google.generativeai
+google-generativeai
+python-dotenv
