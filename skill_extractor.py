@@ -7,7 +7,7 @@ import streamlit as st
 
 # Load API Key (Pastikan ini ada di bagian atas app.py)
 load_dotenv()
-api_key = 'AIzaSyC-VS4pqSohcH5JYhBhRfnY7l-RTsB64Bg'
+api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
     st.error("⚠️ API Key Gemini tidak ditemukan!")
     st.stop()

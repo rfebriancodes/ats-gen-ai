@@ -1,9 +1,13 @@
 import os
 import google.generativeai as genai
 
-def generate_evaluation(job_desc, cv_text, skill_score, semantic_score, exp_score):
+from dotenv import load_dotenv
+import os
 
-    api_key = 'AIzaSyC-VS4pqSohcH5JYhBhRfnY7l-RTsB64Bg'
+
+def generate_evaluation(job_desc, cv_text, skill_score, semantic_score, exp_score):
+    load_dotenv()
+    api_key = os.getenv("GEMINI_API_KEY")
     genai.configure(api_key=api_key)
 
     model = genai.GenerativeModel("gemini-2.5-flash")

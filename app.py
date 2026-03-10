@@ -39,15 +39,21 @@ st.sidebar.header("📝 Job Description")
 job_desc = st.sidebar.text_area("Paste Job Description")
 
 # Auto Extract Skills
+# Extract button
 if st.sidebar.button("Auto Extract Skills from JD"):
     if job_desc:
         extracted = extract_skills_with_gemini(job_desc)
-        st.sidebar.write("Detected Skills:")
-        st.sidebar.write(extracted)
+
+        if isinstance(extracted, list):
+            extracted = ", ".join(extracted)
+
+        st.session_state["required_skills"] = extracted
 
 st.sidebar.header("🛠 Required Skills (comma separated)")
-skills_input = st.sidebar.text_input(
-    "Example: go, aws, docker, agile"
+
+skills_input = st.sidebar.text_area(
+    "Example: go, aws, docker, agile",
+    key="required_skills"
 )
 
 # Evaluate Button
