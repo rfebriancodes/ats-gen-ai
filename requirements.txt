@@ -8,3 +8,4 @@ PyPDF2
 plotly
 google-generativeai
 python-dotenv
+pdfplumber
